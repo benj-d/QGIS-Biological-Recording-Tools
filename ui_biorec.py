@@ -375,7 +375,7 @@ class Ui_Biorec(object):
         self.cbTaxonMetaData.setMinimumSize(QtCore.QSize(0, 0))
         self.cbTaxonMetaData.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.cbTaxonMetaData.setObjectName("cbTaxonMetaData")
-        self.cbTaxonMetaData.setChecked(true)
+        self.cbTaxonMetaData.setChecked(True)
         self.horizontalLayout_10.addWidget(self.cbTaxonMetaData)
         self.mlcbTaxonMetaDataLayer = QgsMapLayerComboBox(self.mGroupBox)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
