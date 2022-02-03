@@ -1187,6 +1187,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
 
         imgFolder = self.leImageFolder.text()
         outCRS = QgsCoordinateReferenceSystem(self.qgsOutputCRS.crs().authid())
+        tc = QgsProject.instance().transformContext() #V3 requires a transform context..?
         
         validName = self.makeValidFilename(layer.getName())
         #Remove 'TEMP ' from start of name.
@@ -1197,8 +1198,15 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             formatArg =  "GeoJSON"
         elif format == "Shapefile":
             formatArg =  "ESRI Shapefile"
+
+        vOptions = QgsVectorFileWriter.SaveVectorOptions()
+        vOptions.driverName = formatArg
+        vOptions.fileEncoding = "utf-8"
+        vOptions.destCRS = outCRS
                 
-        error = QgsVectorFileWriter.writeAsVectorFormatV2(layer.getVectorLayer(), filePath, "utf-8", outCRS, formatArg)
+        #error = QgsVectorFileWriter.writeAsVectorFormat(layer.getVectorLayer(), filePath, "utf-8", outCRS, formatArg) #BD original
+        error = QgsVectorFileWriter.writeAsVectorFormatV2(layer.getVectorLayer(), filePath, tc, vOptions) #BD transition.
+        #error = QgsVectorFileWriter.writeAsVectorFormatV3(layer.getVectorLayer(), filePath, tc, vOptions) #BD Options for QGIS 3.23 onwards
 
         #self.logMessage("error - " + str(error))
         #self.logMessage("NoError - " + str(QgsVectorFileWriter.NoError))
