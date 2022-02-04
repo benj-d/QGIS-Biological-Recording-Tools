@@ -1199,12 +1199,14 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         elif format == "Shapefile":
             formatArg =  "ESRI Shapefile"
 
+        #writevector V2 and V3 now contain options in attribute variable
         vOptions = QgsVectorFileWriter.SaveVectorOptions()
         vOptions.driverName = formatArg
         vOptions.fileEncoding = "utf-8"
         vOptions.destCRS = outCRS
-                
-        #error = QgsVectorFileWriter.writeAsVectorFormat(layer.getVectorLayer(), filePath, "utf-8", outCRS, formatArg) #BD original
+
+        #writeAsVectorFormat is depreciated from 3.10 and writeAsVectorFormatV2 is depreciated from QGIS 2.20 onwards.
+        #error = QgsVectorFileWriter.writeAsVectorFormat(layer.getVectorLayer(), filePath, "utf-8", outCRS, formatArg) #BD original. 3.8 and earlier.
         error = QgsVectorFileWriter.writeAsVectorFormatV2(layer.getVectorLayer(), filePath, tc, vOptions) #BD transition.
         #error = QgsVectorFileWriter.writeAsVectorFormatV3(layer.getVectorLayer(), filePath, tc, vOptions) #BD Options for QGIS 3.23 onwards
 
@@ -1238,7 +1240,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % (e), level=Qgis.Warning)
                 self.imageError = True
 
-    def saveComposerImage(self, name, layers): #problem with this BD02022022
+    def saveComposerImage(self, name, layers):
 
         l = iface.openLayoutDesigners()[0].masterLayout() #amended layout to masterlayout
 
@@ -1249,12 +1251,12 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         
         imgFolder = self.leImageFolder.text()
         validName = self.makeValidFilename(name)
-        #self.iface.messageBar().pushMessage("Error imgFolder", imgFolder, level=Qgis.Warning) #BD good
-        #self.iface.messageBar().pushMessage("Error validName", validName, level=Qgis.Warning) #BD good
+        #self.iface.messageBar().pushMessage("Error imgFolder", imgFolder, level=Qgis.Warning)
+        #self.iface.messageBar().pushMessage("Error validName", validName, level=Qgis.Warning)
         #Remove 'TEMP ' from start of name.
         validName = validName[5:]
-        outputFileName = imgFolder + os.path.sep + validName #BD not a path issue.
-        self.iface.messageBar().pushMessage("Error outputFileName", outputFileName, level=Qgis.Warning) #BD good.. backslash issue?
+        outputFileName = imgFolder + os.path.sep + validName
+        self.iface.messageBar().pushMessage("Error outputFileName", outputFileName, level=Qgis.Warning)
                
         #Get the taxon name from the layer
         nameReplace = validName
@@ -1266,20 +1268,20 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         #For each text item, replace the tokens, e.g. #name#, with corresponding text. 
 
         #Get all text items from the layout.
-        #Item.scene() #ensures that the item is being used (not deleted) #BD name item is not defined (this was commented out)
+        #Item.scene() #ensures that the item is being used (not deleted)
         textItems = [item for item in l.items() if type(item).__name__ == "QgsLayoutItemLabel" and item.scene()]
 
         #Save the original text item values so that they can be reset afterwards
         originalText=[]
         for textItem in textItems:
-            #self.logMessage("storing label " + textItem.text()) #BD commented out. stores #name#
+            #self.logMessage("storing label " + textItem.text())
             originalText.append(textItem.text())
 
         #Now replace the #name# tokens with the 'nameReplace' text derived from
         #the layer name - usually based on the taxon name.
         for textItem in textItems:
             textItem.setText(textItem.text().replace('#name#', nameReplace))
-            #self.logMessage("adding label " + textItem.text()) #BD works fine.
+            #self.logMessage("adding label " + textItem.text())
             l.refresh()
 
         #If TaxonMetaDataLayer has been set and checkbox set to use it, then set a filter to select
@@ -1287,7 +1289,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         #Then for each field in the TaxonMetaDataLayer, check to see if each of the fields in the
         #TaxaonMetaDataLayer has been used as a token in any checkboxes and, if so, replace the token
         #for the value of that field for the species at hand.
-        if self.cbTaxonMetaData.isChecked() and self.mlcbTaxonMetaDataLayer.currentLayer() is not None: #BD This statement works and outputs image (metadata must be checked!)
+        if self.cbTaxonMetaData.isChecked() and self.mlcbTaxonMetaDataLayer.currentLayer() is not None:
             metaLayer = self.mlcbTaxonMetaDataLayer.currentLayer()
             #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
             strFilter = '"%s" ~ \'^ *%s *$\'' % ("Taxon", nameReplace)
@@ -1308,8 +1310,8 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                             strVal = ''
                     except:
                         strVal = ''
-                        e = sys.exc_info()[0] #BD active
-                        #self.logMessage("Error: %s" % (e)) #BD active
+                        e = sys.exc_info()[0]
+                        #self.logMessage("Error: %s" % (e))
                 for textItem in textItems:
                     if '#' + field.name() + '#' in textItem.text():
                         textItem.setText(textItem.text().replace('#' + field.name() + '#', strVal))
@@ -1319,7 +1321,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 optNameColumn = self.env.getEnvValue("biorec.namecolumn")
                 if metaOutFileName == '' and optNameColumn == field.name():
                     metaOutFileName = strVal
-        try:
+        try: #BD03022022 try is bypassed if metadata checkbox is not checked in above if
             [item for item in l.items() if type(item).__name__ == "QgsLayoutItemMap"][0].setLayers(layers)
             
             le = QgsLayoutExporter(l)
@@ -1328,7 +1330,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 outName = validName
             else:
                 outName = metaOutFileName
-            #self.logMessage("print - " + outName) #BD fireing? No.. should it be?
+            #self.logMessage("print - " + outName)
             if format == "Composer image":
                 #Much slower than PDF generation for some reason
                 s = QgsLayoutExporter.ImageExportSettings()
@@ -1343,7 +1345,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 s = QgsLayoutExporter.SvgExportSettings()
                 s.forceVectorOutput = True
                 res = le.exportToSvg(imgFolder + os.path.sep + outName + ".svg", s)
-            #self.logMessage(str(datetime.now().time())) #BD fireing? No.. should it be?
+            #self.logMessage(str(datetime.now().time()))
         except:
             if not self.imageError:
                 e = sys.exc_info()[0]
